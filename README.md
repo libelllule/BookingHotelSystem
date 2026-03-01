@@ -1,85 +1,93 @@
-# 🏨 Hotel Booking System
+# Hotel Booking System (PostgreSQL + File Serialization)
 
-Консольное приложение для бронирования отелей на Java. Система поддерживает работу с реляционной базой данных (PostgreSQL) и обеспечивает отказоустойчивость за счет дублирующей сериализации состояния в файл.
+Console-based hotel reservation system with a dual-layer storage strategy. Features a PostgreSQL backend for primary data and automatic state serialization for session persistence.
 
-## 🏗 Архитектура
+## Architecture
 
-Проект построен на четком разделении ответственности:
+1.  **Booking System Core (BookingSystem.java)**:
+    *   Central logic layer coordinating DB and File I/O.
+    *   Handles hotel search, availability checks, and reservation flow.
+    *   Triggers automatic serialization to `hotel_state.dat` on every change.
 
-*   **BookingSystem**: Ядро системы. Координирует бизнес-логику, взаимодействие с БД и файловым хранилищем.
-*   **Database Layer**: Интерфейс к PostgreSQL. Инкапсулирует SQL-запросы, управление транзакциями и подключениями.
-*   **File Storage**: Механизм автоматической сериализации состояния в `hotel_state.dat` для быстрого восстановления данных.
-*   **Models**: Сериализуемые POJO-классы (`Hotel`, `Booking`) с переопределенными методами `equals/hashCode`.
+2.  **Database Layer (Database.java)**:
+    *   PostgreSQL interface using JDBC.
+    *   Manages transactional bookings (INSERT + UPDATE) with rollback support.
+    *   Handles city-based filtering and room inventory.
 
-## ✨ Основные возможности
+3.  **Persistence Layer (File Storage)**:
+    *   Binary serialization of `Hotel` and `Booking` POJO classes.
+    *   Enables state recovery if the database connection is interrupted.
 
-*   🔍 **Умный поиск**: Поиск по городам с проверкой фактического наличия свободных мест.
-*   📅 **Валидация дат**: Контроль корректности (даты не в прошлом, выезд позже заезда).
-*   💰 **Авторасчет**: Калькуляция полной стоимости проживания на основе количества ночей.
-*   🛡 **Транзакционность**: Атомарное создание брони с автоматическим откатом (Rollback) при сбоях.
-*   💾 **Гибридное хранение**: Одновременная запись в SQL и бинарный файл.
-*   ⚡ **Кэширование**: Хранение последних результатов поиска для ускорения работы.
+## Features
 
-## 📂 Структура проекта
+*   **Smart Search**: Filter hotels by city with real-time room availability validation.
+*   **Date Validation**: Strict checking for past dates and checkout-after-checkin logic.
+*   **Transactional Safety**: Atomic booking operations with automatic SQL rollback on failure.
+*   **Hybrid Storage**: Concurrent writing to SQL and local binary state file.
+*   **Input Sanitization**: RegEx validation for city names and date format parsing.
+*   **Caching**: In-memory storage of recent search results for performance.
 
-```text
-src/
-├── Main.java           # Точка входа, консольное меню
-├── BookingSystem.java  # Сервис управления логикой
-├── Database.java       # DAO-слой для PostgreSQL
-├── Hotel.java          # Сущность "Отель"
-├── Booking.java        # Сущность "Бронирование"
-├── CheckSQL.java       # Утилита для диагностики БД
-└── bd.sql              # SQL-скрипты инициализации
-```
+## Project Structure
 
+*   `Main.java` - Console UI and command-line menu.
+*   `BookingSystem.java` - Core business logic and coordination.
+*   `Database.java` - PostgreSQL connection and SQL execution.
+*   `Hotel.java` - Serializable model for hotel entities.
+*   `Booking.java` - Serializable model for booking records.
+*   `CheckSQL.java` - Database connectivity diagnostic tool.
+*   `bd.sql` - Database schema and initial seed data.
 
-🛠 Требования и настройка
-Системные требования
-Java: JDK 8 или выше.
-БД: PostgreSQL 12+.
-Драйвер: JDBC PostgreSQL Driver.
-Развертывание базы данных
-Выполните скрипты из файла bd.sql или поочередно:
-```
-CREATE DATABASE hotel_db;
+## System Requirements
 
-CREATE TABLE hotels (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    city VARCHAR(50) NOT NULL,
-    rooms_available INTEGER NOT NULL,
-    price_per_night DECIMAL(10,2) NOT NULL
-);
+### Platform
+*   **Java**: JDK 8 or higher.
+*   **Database**: PostgreSQL 12+.
 
-CREATE TABLE bookings (
-    id SERIAL PRIMARY KEY,
-    guest_name VARCHAR(100) NOT NULL,
-    hotel_id INTEGER REFERENCES hotels(id),
-    check_in DATE NOT NULL,
-    check_out DATE NOT NULL,
-    total_price DECIMAL(10,2) NOT NULL
-);
-```
+### Dependencies
+*   PostgreSQL JDBC Driver (`postgresql-42.x.x.jar`).
 
-Конфигурация
-В файле Database.java укажите ваши данные для подключения:
-java
-String url = "jdbc:postgresql://localhost:5432/hotel_db";
-String user = "postgres";
-String password = "your_password";
+## Installation
 
+1.  **Database Setup**:
+    ```sql
+    CREATE DATABASE hotel_db;
+    -- Run schema from bd.sql to create 'hotels' and 'bookings' tables
+    ```
 
-🚀 Запуск и использование
-Компиляция и диагностика:
-```
-javac *.java
-java CheckSQL # Проверка связи с БД
+2.  **Configuration**:
+    Update credentials in `Database.java`:
+    ```java
+    String url = "jdbc:postgresql://localhost:5432/hotel_db";
+    String user = "postgres";
+    String password = "your_password";
+    ```
 
-```
-Запуск приложения:
-```
-java Main
+3.  **Build**:
+    ```bash
+    javac *.java
+    ```
 
-```
+## Usage
+
+1.  **Verify Connection**:
+    ```bash
+    java CheckSQL
+    ```
+
+2.  **Run Application**:
+    ```bash
+    java Main
+    ```
+
+3.  **Workflow**:
+    *   Search by city (e.g., "Moscow") and dates (YYYY-MM-DD).
+    *   Select Hotel ID from results and enter guest name.
+    *   View active bookings or cached hotel data via the main menu.
+
+## Technical Notes
+
+*   **Protocol Choice**: HTTPS was selected over SFTP for the broader project ecosystem to ensure native Browser/Android compatibility and firewall traversal (Port 443).
+*   **Serialization**: If `hotel_state.dat` exists, the system attempts to restore state on startup.
+*   **Error Handling**: Comprehensive `SQLException` and `DateTimeParseException` catching.
+
 

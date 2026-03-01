@@ -49,9 +49,32 @@ Console-based hotel reservation system with a dual-layer storage strategy. Featu
 ## Installation
 
 1.  **Database Setup**:
+    Run the following SQL commands in your PostgreSQL console:
     ```sql
     CREATE DATABASE hotel_db;
-    -- Run schema from bd.sql to create 'hotels' and 'bookings' tables
+
+    CREATE TABLE hotels (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        city VARCHAR(50) NOT NULL,
+        rooms_available INTEGER NOT NULL,
+        price_per_night DECIMAL(10,2) NOT NULL
+    );
+
+    CREATE TABLE bookings (
+        id SERIAL PRIMARY KEY,
+        guest_name VARCHAR(100) NOT NULL,
+        hotel_id INTEGER REFERENCES hotels(id),
+        check_in DATE NOT NULL,
+        check_out DATE NOT NULL,
+        total_price DECIMAL(10,2) NOT NULL
+    );
+
+    -- Seed Data
+    INSERT INTO hotels (name, city, rooms_available, price_per_night) VALUES
+        ('Grand Hotel', 'Moscow', 5, 5000),
+        ('City Inn', 'Moscow', 3, 3500),
+        ('Sea Breeze', 'Sochi', 8, 4500);
     ```
 
 2.  **Configuration**:
@@ -78,16 +101,3 @@ Console-based hotel reservation system with a dual-layer storage strategy. Featu
     ```bash
     java Main
     ```
-
-3.  **Workflow**:
-    *   Search by city (e.g., "Moscow") and dates (YYYY-MM-DD).
-    *   Select Hotel ID from results and enter guest name.
-    *   View active bookings or cached hotel data via the main menu.
-
-## Technical Notes
-
-*   **Protocol Choice**: HTTPS was selected over SFTP for the broader project ecosystem to ensure native Browser/Android compatibility and firewall traversal (Port 443).
-*   **Serialization**: If `hotel_state.dat` exists, the system attempts to restore state on startup.
-*   **Error Handling**: Comprehensive `SQLException` and `DateTimeParseException` catching.
-
-

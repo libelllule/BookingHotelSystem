@@ -31,6 +31,7 @@ src/
 ├── Booking.java        # Сущность "Бронирование"
 ├── CheckSQL.java       # Утилита для диагностики БД
 └── bd.sql              # SQL-скрипты инициализации
+```
 
 
 🛠 Требования и настройка
@@ -40,7 +41,7 @@ Java: JDK 8 или выше.
 Драйвер: JDBC PostgreSQL Driver.
 Развертывание базы данных
 Выполните скрипты из файла bd.sql или поочередно:
-sql
+```
 CREATE DATABASE hotel_db;
 
 CREATE TABLE hotels (
@@ -59,7 +60,7 @@ CREATE TABLE bookings (
     check_out DATE NOT NULL,
     total_price DECIMAL(10,2) NOT NULL
 );
-
+```
 
 Конфигурация
 В файле Database.java укажите ваши данные для подключения:
@@ -71,13 +72,14 @@ String password = "your_password";
 
 🚀 Запуск и использование
 Компиляция и диагностика:
-bash
+```
 javac *.java
 java CheckSQL # Проверка связи с БД
 
-
+```
 Запуск приложения:
-bash
+```
 java Main
 
+```
 

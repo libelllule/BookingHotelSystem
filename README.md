@@ -1,106 +1,73 @@
+# Hotel Booking System (Java + JDBC + PostgreSQL)
 
+Профессиональная система бронирования отелей, реализованная на Java. Основная особенность проекта — динамический расчет доступности номеров на стороне базы данных, что исключает ошибки при одновременном бронировании на разные даты.
 
+## Ключевые особенности
 
-# Hotel Booking System (PostgreSQL + File Serialization)
+* **Advanced Availability Logic**: В отличие от простых систем с декрементом счетчика, здесь используется SQL-логика пересечения временных интервалов. Система проверяет занятость конкретных номеров именно в выбранный период.
+* **Database-Driven**: Полная интеграция с PostgreSQL через JDBC.
+* **ACID Compliance**: Использование транзакций для обеспечения целостности данных при оформлении бронирования.
+* **Validation**: Строгая валидация входных данных: проверка корректности городов, форматов дат и логики (дата выезда не может быть раньше даты заезда).
+* **State Management**: Комбинированный подход — хранение бизнес-сущностей в БД и поддержка состояния сессии в бинарных файлах (`.dat`).
 
-Console-based hotel reservation system with a dual-layer storage strategy. Features a PostgreSQL backend for primary data and automatic state serialization for session persistence.
+## Технический стек
 
-## Architecture
+* **Language:** Java (JDK 15+)
+* **Database:** PostgreSQL
+* **Library:** JDBC (PostgreSQL Driver)
+* **Architecture:** Layered Architecture (UI -> Service -> Database)
 
-1.  **Booking System Core (BookingSystem.java)**:
-    *   Central logic layer coordinating DB and File I/O.
-    *   Handles hotel search, availability checks, and reservation flow.
-    *   Triggers automatic serialization to `hotel_state.dat` on every change.
+## Логика расчета пересечения дат
 
-2.  **Database Layer (Database.java)**:
-    *   PostgreSQL interface using JDBC.
-    *   Manages transactional bookings (INSERT + UPDATE) with rollback support.
-    *   Handles city-based filtering and room inventory.
+Сердцем системы является SQL-запрос, который находит конфликтующие бронирования. Математически это выражено условием:
+`WHERE (check_in < :new_check_out) AND (check_out > :new_check_in)`
 
-3.  **Persistence Layer (File Storage)**:
-    *   Binary serialization of `Hotel` and `Booking` POJO classes.
-    *   Enables state recovery if the database connection is interrupted.
+Если количество пересекающихся броней меньше общего количества комнат в отеле (`rooms_total`), отель считается доступным.
 
-## Features
+## Установка и запуск
 
-*   **Smart Search**: Filter hotels by city with real-time room availability validation.
-*   **Date Validation**: Strict checking for past dates and checkout-after-checkin logic.
-*   **Transactional Safety**: Atomic booking operations with automatic SQL rollback on failure.
-*   **Hybrid Storage**: Concurrent writing to SQL and local binary state file.
-*   **Input Sanitization**: RegEx validation for city names and date format parsing.
-*   **Caching**: In-memory storage of recent search results for performance.
+### 1. Подготовка базы данных
+Создайте базу данных `hotel_db` и выполните скрипт из файла `bd.sql`:
+~~~bash
+```sql
+CREATE TABLE hotels (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    city VARCHAR(50) NOT NULL,
+    rooms_total INTEGER NOT NULL,
+    price_per_night DECIMAL(10, 2) NOT NULL
+);
 
-## Project Structure
+CREATE TABLE bookings (
+    id SERIAL PRIMARY KEY,
+    guest_name VARCHAR(100) NOT NULL,
+    hotel_id INTEGER REFERENCES hotels(id),
+    check_in DATE NOT NULL,
+    check_out DATE NOT NULL,
+    total_price DECIMAL(10, 2) NOT NULL
+);
+~~~
+2. Настройка подключения
+В файле Database.java укажите свои данные для подключения:
+~~~bash
+String url = "jdbc:postgresql://localhost:5432/hotel_db";
+String user = "postgres";
+String password = "your_password";
+~~~
+3. Сборка и запуск
+Скомпилируйте проект в IntelliJ IDEA.
 
-*   `Main.java` - Console UI and command-line menu.
-*   `BookingSystem.java` - Core business logic and coordination.
-*   `Database.java` - PostgreSQL connection and SQL execution.
-*   `Hotel.java` - Serializable model for hotel entities.
-*   `Booking.java` - Serializable model for booking records.
-*   `CheckSQL.java` - Database connectivity diagnostic tool.
-*   `bd.sql` - Database schema and initial seed data.
+Запустите класс Main.java.
 
-## System Requirements
+Следуйте инструкциям в консольном меню.
 
-### Platform
-*   **Java**: JDK 8 or higher.
-*   **Database**: PostgreSQL 12+.
+ Структура проекта
+Main.java — Точка входа, консольный интерфейс.
 
-### Dependencies
-*   PostgreSQL JDBC Driver (`postgresql-42.x.x.jar`).
+BookingSystem.java — Сервисный слой, обработка бизнес-логики.
 
-## Installation
+Database.java — Слой доступа к данным (DAO), работа с SQL.
 
-1.  **Database Setup**:
-    Run the following SQL commands in your PostgreSQL console:
-    ```sql
-    CREATE DATABASE hotel_db;
+Hotel.java / Booking.java — Модели данных.
 
-    CREATE TABLE hotels (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        city VARCHAR(50) NOT NULL,
-        rooms_available INTEGER NOT NULL,
-        price_per_night DECIMAL(10,2) NOT NULL
-    );
-
-    CREATE TABLE bookings (
-        id SERIAL PRIMARY KEY,
-        guest_name VARCHAR(100) NOT NULL,
-        hotel_id INTEGER REFERENCES hotels(id),
-        check_in DATE NOT NULL,
-        check_out DATE NOT NULL,
-        total_price DECIMAL(10,2) NOT NULL
-    );
-
-    -- Seed Data
-    INSERT INTO hotels (name, city, rooms_available, price_per_night) VALUES
-        ('Grand Hotel', 'Moscow', 5, 5000),
-        ('City Inn', 'Moscow', 3, 3500),
-        ('Sea Breeze', 'Sochi', 8, 4500);
-    ```
-
-2.  **Configuration**:
-    Update credentials in `Database.java`:
-    ```java
-    String url = "jdbc:postgresql://localhost:5432/hotel_db";
-    String user = "postgres";
-    String password = "your_password";
-    ```
-
-3.  **Build**:
-    ```bash
-    javac *.java
-    ```
-
-## Usage
-
-1.  **Verify Connection**:
-    ```bash
-    java CheckSQL
-    ```
-
-2.  **Run Application**:
-    ```bash
-    java Main
-    ```
+bd.sql — Схема базы данных и начальные данные.

@@ -51,8 +51,7 @@ public class BookingSystem {
 
             lastSearchResults.clear();
 
-            List<Hotel> availableHotels = db.getHotelsByCity(city);
-
+            List<Hotel> availableHotels = db.getHotelsByCity(city, checkIn, checkOut);
             if (availableHotels.isEmpty()) {
                 System.out.println("\nВ городе " + city + " нет доступных отелей");
                 return;
@@ -76,8 +75,7 @@ public class BookingSystem {
                 System.out.println("   ID: " + hotel.getId());
                 System.out.println("   Город: " + hotel.getCity());
                 System.out.println("   Цена за ночь: " + hotel.getPrice() + " руб");
-                System.out.println("   Свободных номеров: " + hotel.getRooms());
-                System.out.println("   Общая стоимость: " + total + " руб (" + days + " ночей)");
+                System.out.println("   Свободных номеров: " + hotel.getAvailableRooms());                System.out.println("   Общая стоимость: " + total + " руб (" + days + " ночей)");
             }
 
         } catch (Exception e) {
@@ -97,8 +95,8 @@ public class BookingSystem {
                 return false;
             }
 
-            if (!db.isHotelAvailable(hotelId)) {
-                System.out.println("В отеле нет свободных номеров");
+            if (!db.isHotelAvailable(hotelId, checkIn, checkOut)) {
+                System.out.println("В отеле нет свободных номеров на эти даты!");
                 return false;
             }
 
@@ -106,8 +104,6 @@ public class BookingSystem {
             double total = hotel.getPrice() * days;
 
             db.createBooking(guest, hotelId, checkIn, checkOut, total);
-            hotel.setRooms(hotel.getRooms() - 1);
-
             Booking booking = new Booking(
                     bookings.size() + 1,
                     guest,
@@ -183,8 +179,7 @@ public class BookingSystem {
             System.out.println("\n" + (i+1) + ". " + hotel.getName());
             System.out.println("   Город: " + hotel.getCity());
             System.out.println("   Цена: " + hotel.getPrice() + " руб/ночь");
-            System.out.println("   Свободных номеров: " + hotel.getRooms());
-            System.out.println("   ID: " + hotel.getId());
+            System.out.println("   Всего номеров: " + hotel.getRoomsTotal());            System.out.println("   ID: " + hotel.getId());
         }
     }
 }

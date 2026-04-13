@@ -10,7 +10,7 @@ public class Database {
         Class.forName("org.postgresql.Driver");
         String url = "jdbc:postgresql://localhost:5432/hotel_db";
         String user = "postgres";
-        String password = "qweeWeWe5W";
+        String password = "";
         connection = DriverManager.getConnection(url, user, password);
         System.out.println(" Подключено к PostgreSQL: hotel_db");
     }
